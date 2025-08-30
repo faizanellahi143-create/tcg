@@ -1,36 +1,29 @@
 import mongoose from "mongoose";
 
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(
-      process.env.MONGODB_URI || "mongodb://localhost:27017/tcg-bot-simulator",
-      {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      }
-    );
+export const connectDB = async () => {
+  const uri = process.env.MONGO_URI ?? process.env.MONGODB_URI ?? "mongodb://localhost:27017/tcg-bot-simulator";
+  if (!uri) throw new Error("MONGO_URI not set");
 
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+  const opts = {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 20000
+  };
 
-    // Handle connection events
-    mongoose.connection.on("error", (err) => {
-      console.error("❌ MongoDB connection error:", err);
-    });
+  await mongoose.connect(uri, opts);
 
-    mongoose.connection.on("disconnected", () => {
-      console.log("⚠️  MongoDB disconnected");
-    });
+  console.log(`✅ MongoDB Connected: ${mongoose.connection.host}`);
 
-    // Graceful shutdown
-    process.on("SIGINT", async () => {
-      await mongoose.connection.close();
-      console.log("🔄 MongoDB connection closed through app termination");
-      process.exit(0);
-    });
-  } catch (error) {
-    console.error("❌ Error connecting to MongoDB:", error.message);
-    process.exit(1);
-  }
+  mongoose.connection.on("error", (err) => {
+    console.error("❌ MongoDB connection error:", err);
+  });
+
+  mongoose.connection.on("disconnected", () => {
+    console.log("⚠️  MongoDB disconnected");
+  });
+
+  process.on("SIGINT", async () => {
+    await mongoose.connection.close();
+    console.log("🔄 MongoDB connection closed through app termination");
+    process.exit(0);
+  });
 };
-
-export { connectDB };
